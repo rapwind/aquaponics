@@ -1,0 +1,15 @@
+name: ping-pi
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: [self-hosted, linux, ARM64, pi, aquapi, deploy]
+    steps:
+      - name: Show runner info
+        run: |
+          whoami
+          hostname
+          uname -a
+          pwd

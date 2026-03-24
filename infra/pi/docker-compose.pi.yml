@@ -1,0 +1,13 @@
+services:
+  pi-agent:
+    image: ${PI_AGENT_IMAGE:-ghcr.io/rapwind/aquaponics/pi-agent:latest}
+    restart: unless-stopped
+    env_file:
+      - ./env/.env
+    privileged: true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

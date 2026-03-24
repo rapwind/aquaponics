@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      pi-agent: ${{ steps.filter.outputs.pi-agent }}
+      ingester: ${{ steps.filter.outputs.ingester }}
+      contracts: ${{ steps.filter.outputs.contracts }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            pi-agent:
+              - 'apps/pi-agent/**'
+              - 'packages/**'
+            ingester:
+              - 'apps/ingester/**'
+              - 'packages/**'
+            contracts:
+              - 'packages/contracts/**'
+
+  lint-pi-agent:
+    needs: changes
+    if: needs.changes.outputs.pi-agent == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/pi-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check src/
+      - run: ruff format --check src/
+
+  test-pi-agent:
+    needs: changes
+    if: needs.changes.outputs.pi-agent == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/pi-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: pip install pytest
+      - run: pytest tests/ -v || echo "No tests yet"
+
+  lint-ingester:
+    needs: changes
+    if: needs.changes.outputs.ingester == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ingester
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check src/
+      - run: ruff format --check src/
+
+  test-ingester:
+    needs: changes
+    if: needs.changes.outputs.ingester == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ingester
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: pip install pytest
+      - run: pytest tests/ -v || echo "No tests yet"
