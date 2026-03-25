@@ -37,6 +37,9 @@ docker compose --env-file "${ENV_FILE}" pull
 echo "=== docker compose up -d ==="
 docker compose --env-file "${ENV_FILE}" up -d
 
+echo "=== restart grafana ==="
+docker restart aquaponics-grafana || true
+
 echo "=== image cleanup ==="
 docker image prune -af || true
 
