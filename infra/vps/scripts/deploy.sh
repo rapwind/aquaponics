@@ -37,6 +37,14 @@ docker compose --env-file "${ENV_FILE}" pull
 echo "=== docker compose up -d ==="
 docker compose --env-file "${ENV_FILE}" up -d
 
+echo "=== run migrations ==="
+MIGRATION_DIR="${COMPOSE_DIR}/timescaledb/migrations"
+for f in "${MIGRATION_DIR}"/*.sql; do
+  [[ -f "$f" ]] || { echo "No migration files found"; break; }
+  echo "Applying: $(basename "$f")"
+  docker exec aquaponics-timescaledb psql -U aquaponics -d aquaponics -f "/docker-entrypoint-initdb.d/$(basename "$f")"
+done
+
 echo "=== restart grafana ==="
 docker restart aquaponics-grafana || true
 
