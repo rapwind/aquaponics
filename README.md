@@ -39,7 +39,7 @@ Raspberry Pi (自宅)              VPS
 ```bash
 cd infra/vps
 cp .env.example .env  # 環境変数を設定
-docker compose -f docker-compose.vps.yml up -d
+docker compose up -d
 ```
 
 ### Raspberry Pi 側

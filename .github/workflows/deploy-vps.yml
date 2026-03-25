@@ -49,11 +49,11 @@ jobs:
             echo "${{ secrets.DEPLOY_GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
 
             # Save current state for rollback
-            docker compose -f docker-compose.vps.yml ps --format json > /tmp/aquaponics-pre-deploy.json || true
+            docker compose -f docker-compose.yml ps --format json > /tmp/aquaponics-pre-deploy.json || true
 
             # Pull and deploy
-            docker compose -f docker-compose.vps.yml pull
-            docker compose -f docker-compose.vps.yml up -d --remove-orphans
+            docker compose -f docker-compose.yml pull
+            docker compose -f docker-compose.yml up -d --remove-orphans
 
             # Health check
             sleep 15

@@ -4,7 +4,7 @@
 
 ```bash
 cd infra/vps
-docker compose -f docker-compose.vps.yml up -d
+docker compose up -d
 ```
 
 ## Raspberry Pi 起動手順

@@ -1,0 +1,70 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: aquaponics-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config:ro
+      - /home/app/deploy/aquaponics/data/mosquitto:/mosquitto/data
+      - /home/app/deploy/aquaponics/data/mosquitto-log:/mosquitto/log
+
+  timescaledb:
+    image: timescale/timescaledb:2.25.2-pg17
+    container_name: aquaponics-timescaledb
+    restart: unless-stopped
+    env_file:
+      - /home/app/deploy/aquaponics/env/app.env
+    environment:
+      POSTGRES_DB: aquaponics
+      POSTGRES_USER: aquaponics
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Tokyo
+    ports:
+      - "5432:5432"
+    volumes:
+      - /home/app/deploy/aquaponics/data/timescaledb:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=1024MB
+      -c maintenance_work_mem=64MB
+      -c wal_compression=on
+      -c max_wal_size=1GB
+      -c random_page_cost=1.1
+
+  grafana:
+    image: grafana/grafana:11.6.0
+    container_name: aquaponics-grafana
+    restart: unless-stopped
+    env_file:
+      - /home/app/deploy/aquaponics/env/app.env
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      TZ: Asia/Tokyo
+    ports:
+      - "3000:3000"
+    volumes:
+      - /home/app/deploy/aquaponics/data/grafana:/var/lib/grafana
+    depends_on:
+      - timescaledb
+
+  ingester:
+    image: ghcr.io/rapwind/aquaponics/ingester:latest
+    container_name: aquaponics-ingester
+    restart: unless-stopped
+    env_file:
+      - /home/app/deploy/aquaponics/env/app.env
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+      PGHOST: timescaledb
+      PGPORT: 5432
+      PGDATABASE: aquaponics
+      PGUSER: aquaponics
+      PGPASSWORD: ${DB_PASSWORD}
+    depends_on:
+      - mosquitto
+      - timescaledb
