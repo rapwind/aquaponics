@@ -50,6 +50,7 @@ services:
     volumes:
       - /home/app/deploy/aquaponics/data/grafana:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
     depends_on:
       - timescaledb
 
