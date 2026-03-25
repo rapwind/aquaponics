@@ -5,20 +5,17 @@ on:
 
 jobs:
   ping:
-    runs-on: [self-hosted, Linux, ARM64, pi, aquaponics, deploy]
+    runs-on: [self-hosted, Linux, ARM64]
 
     steps:
-      - name: Show runner info
+      - name: Show pi-agent state
         run: |
-          echo "=== WHOAMI ==="
           whoami
-          echo "=== HOSTNAME ==="
           hostname
-          echo "=== UNAME ==="
-          uname -a
-          echo "=== HOME ==="
-          echo $HOME
-          echo "=== DOCKER ==="
-          docker version
-          echo "=== DEPLOY DIR ==="
-          ls -la /home/actions/deploy/aquaponics
+          docker ps -a
+          echo "-----"
+          ls -la /home/actions/deploy/aquaponics/env || true
+          echo "-----"
+          cat /home/actions/deploy/aquaponics/env/pi-agent.env || true
+          echo "-----"
+          docker logs --tail 200 pi-agent || true
