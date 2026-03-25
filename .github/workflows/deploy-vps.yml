@@ -1,4 +1,4 @@
-name: Deploy — VPS
+name: deploy-vps
 
 on:
   push:
@@ -6,65 +6,50 @@ on:
     paths:
       - "apps/ingester/**"
       - "infra/vps/**"
-      - "packages/contracts/**"
+      - ".github/workflows/deploy-vps.yml"
 
-  workflow_dispatch:
-
-concurrency:
-  group: deploy-vps
-  cancel-in-progress: false
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  build:
-    uses: ./.github/workflows/reusable-build-image.yml
-    with:
-      app_name: ingester
-      context: apps/ingester
-      platforms: linux/amd64
-    permissions:
-      contents: read
-      packages: write
+  build-and-push-ingester:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build image
+        run: |
+          docker build \
+            -t ghcr.io/${{ github.repository }}/ingester:${{ github.sha }} \
+            -t ghcr.io/${{ github.repository }}/ingester:latest \
+            ./apps/ingester
+
+      - name: Push image
+        run: |
+          docker push ghcr.io/${{ github.repository }}/ingester:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository }}/ingester:latest
 
   deploy:
-    needs: build
+    needs: build-and-push-ingester
     runs-on: ubuntu-latest
-    environment: vps-prod
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            infra/vps
 
-      - name: Deploy to VPS via SSH
-        uses: appleboy/ssh-action@v1
+    steps:
+      - name: SSH deploy to VPS
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script_stop: true
+          envs: GHCR_USER,GHCR_TOKEN
           script: |
-            set -e
-            cd /home/actions/deploy/aquaponics
-
-            # Login to GHCR
-            echo "${{ secrets.DEPLOY_GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
-
-            # Save current state for rollback
-            docker compose -f docker-compose.yml ps --format json > /tmp/aquaponics-pre-deploy.json || true
-
-            # Pull and deploy
-            docker compose -f docker-compose.yml pull
-            docker compose -f docker-compose.yml up -d --remove-orphans
-
-            # Health check
-            sleep 15
-            for SVC in mosquitto timescaledb grafana ingester; do
-              STATUS=$(docker inspect --format='{{.State.Status}}' "aquaponics-${SVC}-1" 2>/dev/null || echo "missing")
-              if [ "$STATUS" != "running" ]; then
-                echo "ERROR: ${SVC} is not running (status: ${STATUS})"
-                docker logs "aquaponics-${SVC}-1" --tail 30 || true
-                exit 1
-              fi
-              echo "OK: ${SVC} is running"
-            done
-
-            echo "All services healthy"
+            export GHCR_USER="${{ github.actor }}"
+            export GHCR_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+            /home/app/deploy/aquaponics/repo/infra/vps/scripts/deploy.sh
