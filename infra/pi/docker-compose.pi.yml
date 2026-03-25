@@ -1,13 +1,19 @@
 services:
   pi-agent:
-    image: ${PI_AGENT_IMAGE:-ghcr.io/rapwind/aquaponics/pi-agent:latest}
+    image: ghcr.io/rapwind/aquaponics/pi-agent:latest
+    container_name: pi-agent
     restart: unless-stopped
     env_file:
-      - ./env/.env
+      - /home/actions/deploy/aquaponics/env/pi-agent.env
+    network_mode: host
     privileged: true
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /sys/bus/w1:/sys/bus/w1:ro
+      - /sys/devices:/sys/devices:ro
+      - /dev:/dev
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      test: ["CMD-SHELL", "ps aux | grep 'python src/main.py' | grep -v grep"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
-      start_period: 15s

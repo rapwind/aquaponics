@@ -1,11 +1,18 @@
-/**
- * MQTT topic definitions for aquaponics monitoring system.
- */
-
-export const TOPICS = {
-  SENSOR_DATA: "aquaponics/sensors/+/data",
-  SENSOR_STATUS: "aquaponics/sensors/+/status",
-  SYSTEM_HEARTBEAT: "aquaponics/system/heartbeat",
+export const topicRoots = {
+  data: "dt",
+  command: "cmd",
 } as const;
 
-export type Topic = (typeof TOPICS)[keyof typeof TOPICS];
+export const buildDataTopic = (
+  siteId: string,
+  tankId: string,
+  deviceId: string,
+  sensorGroup: "env" | "water" | "device" | "event" | "heartbeat",
+) => `${topicRoots.data}/aquaponics/${siteId}/${tankId}/${deviceId}/${sensorGroup}`;
+
+export const buildCommandTopic = (
+  siteId: string,
+  tankId: string,
+  deviceId: string,
+  command: "config" | "restart",
+) => `${topicRoots.command}/aquaponics/${siteId}/${tankId}/${deviceId}/${command}`;

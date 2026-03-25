@@ -5,7 +5,7 @@ on:
 
 jobs:
   ping:
-    runs-on: [self-hosted, Linux, ARM64]
+    runs-on: [self-hosted, Linux, ARM64, pi, aquaponics, deploy]
 
     steps:
       - name: Show runner info
@@ -19,6 +19,6 @@ jobs:
           echo "=== HOME ==="
           echo $HOME
           echo "=== DOCKER ==="
-          docker version || true
+          docker version
           echo "=== DEPLOY DIR ==="
-          ls -la /home/actions/deploy/aquaponics || true
+          ls -la /home/actions/deploy/aquaponics

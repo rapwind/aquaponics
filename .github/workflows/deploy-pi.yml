@@ -1,4 +1,4 @@
-name: Deploy — Raspberry Pi
+name: deploy-pi
 
 on:
   push:
@@ -6,89 +6,58 @@ on:
     paths:
       - "apps/pi-agent/**"
       - "infra/pi/**"
-      - "packages/contracts/**"
+      - ".github/workflows/deploy-pi.yml"
 
-  workflow_dispatch:
-
-concurrency:
-  group: deploy-pi
-  cancel-in-progress: false
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  build:
-    uses: ./.github/workflows/reusable-build-image.yml
-    with:
-      app_name: pi-agent
-      context: apps/pi-agent
-      platforms: linux/arm64
-    permissions:
-      contents: read
-      packages: write
+  build-and-push-pi-agent:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build and push arm64 image
+        run: |
+          docker buildx build \
+            --platform linux/arm64 \
+            -t ghcr.io/${{ github.repository }}/pi-agent:${{ github.sha }} \
+            -t ghcr.io/${{ github.repository }}/pi-agent:latest \
+            --push \
+            ./apps/pi-agent
 
   deploy:
-    needs: build
-    runs-on: [self-hosted, Linux, ARM64]
-    environment: pi-prod
-    env:
-      COMPOSE_FILE: /home/actions/deploy/aquaponics/current/docker-compose.pi.yml
-      IMAGE: ghcr.io/${{ github.repository }}/pi-agent
-      DEPLOY_DIR: /home/actions/deploy/aquaponics
-    steps:
-      - name: Login to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
+    needs: build-and-push-pi-agent
+    runs-on: [self-hosted, Linux, ARM64, pi, aquaponics, deploy]
+    environment: prod
 
-      - name: Save current tag for rollback
+    steps:
+      - name: GHCR login on Pi
         run: |
-          CURRENT=$(docker inspect --format='{{index .Config.Image}}' aquaponics-pi-agent-1 2>/dev/null || echo "none")
-          echo "PREVIOUS_IMAGE=${CURRENT}" >> "$GITHUB_ENV"
-          echo "Previous image: ${CURRENT}"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Pull latest image
-        run: docker pull "${IMAGE}:latest"
-
-      - name: Update compose file and deploy
         run: |
-          cd "${DEPLOY_DIR}"
-          docker compose pull
-          docker compose up -d --remove-orphans
+          docker pull ghcr.io/${{ github.repository }}/pi-agent:latest
 
-      - name: Health check
-        id: healthcheck
+      - name: Deploy with compose
         run: |
-          echo "Waiting for container to start..."
-          sleep 10
-          CONTAINER=$(docker ps --filter "name=pi-agent" --format '{{.Names}}' | head -1)
-          if [ -z "$CONTAINER" ]; then
-            echo "::error::pi-agent container not found"
-            exit 1
-          fi
-          STATUS=$(docker inspect --format='{{.State.Status}}' "$CONTAINER")
-          if [ "$STATUS" != "running" ]; then
-            echo "::error::pi-agent is not running (status: $STATUS)"
-            docker logs "$CONTAINER" --tail 50
-            exit 1
-          fi
-          echo "pi-agent is running"
+          docker compose \
+            -f /home/actions/deploy/aquaponics/docker-compose.pi.yml \
+            up -d
 
-      - name: Rollback on failure
-        if: failure() && steps.healthcheck.outcome == 'failure'
+      - name: Cleanup old images
         run: |
-          echo "::warning::Health check failed, rolling back to ${PREVIOUS_IMAGE}"
-          if [ "${PREVIOUS_IMAGE}" != "none" ]; then
-            cd "${DEPLOY_DIR}"
-            docker compose down
-            docker tag "${PREVIOUS_IMAGE}" "${IMAGE}:latest" || true
-            docker compose up -d
-            echo "Rollback complete"
-          else
-            echo "::error::No previous image to roll back to"
-          fi
-
-      - name: Notify result
-        if: always()
-        run: |
-          if [ "${{ job.status }}" = "success" ]; then
-            echo "Deploy succeeded for pi-agent"
-          else
-            echo "::error::Deploy failed for pi-agent"
-          fi
+          docker image prune -af || true

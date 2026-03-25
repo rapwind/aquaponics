@@ -1,0 +1,15 @@
+apiVersion: 1
+
+datasources:
+  - name: TimescaleDB
+    type: postgres
+    access: proxy
+    url: timescaledb:5432
+    user: aquaponics
+    secureJsonData:
+      password: ${DB_PASSWORD}
+    jsonData:
+      database: aquaponics
+      sslmode: disable
+      postgresVersion: 1700
+      timescaledb: true

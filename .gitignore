@@ -1,30 +1,21 @@
-# Environment
+# env
 .env
-*.env.local
+*.env
+.env.*
 
-# Python
+# python
 __pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-venv/
+*.pyc
 .venv/
+venv/
 
-# Node
-node_modules/
-dist/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
+# macOS
 .DS_Store
-Thumbs.db
 
-# Docker volumes
-mosquitto-data/
-timescaledb-data/
-grafana-data/
+# local data
+data/
+*.sqlite
+
+# runtime secrets
+infra/vps/env/app.env
+infra/pi/env/pi-agent.env

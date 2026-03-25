@@ -1,16 +1,13 @@
-/**
- * Metric definitions for aquaponics monitoring system.
- */
-
-export const METRICS = {
-  WATER_TEMP: { name: "water_temperature", unit: "°C" },
-  AIR_TEMP: { name: "air_temperature", unit: "°C" },
-  PH: { name: "ph", unit: "pH" },
-  DISSOLVED_OXYGEN: { name: "dissolved_oxygen", unit: "mg/L" },
-  EC: { name: "electrical_conductivity", unit: "μS/cm" },
-  WATER_LEVEL: { name: "water_level", unit: "cm" },
-  HUMIDITY: { name: "humidity", unit: "%" },
+export const metrics = {
+  air_temp_c: { unit: "C" },
+  humidity_pct: { unit: "%" },
+  pressure_hpa: { unit: "hPa" },
+  lux: { unit: "lux" },
+  water_temp_c: { unit: "C" },
+  water_level_cm: { unit: "cm" },
+  ph: { unit: "pH" },
+  cpu_pct: { unit: "%" },
+  mem_pct: { unit: "%" },
 } as const;
 
-export type MetricKey = keyof typeof METRICS;
-export type Metric = (typeof METRICS)[MetricKey];
+export type MetricName = keyof typeof metrics;

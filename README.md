@@ -4,6 +4,10 @@
 
 ## Architecture
 
+- Raspberry Pi publishes MQTT telemetry
+- VPS runs Mosquitto, TimescaleDB, Grafana, and ingester
+- GitHub Actions deploys Pi and VPS automatically
+
 ```
 Raspberry Pi (自宅)              VPS
 ┌─────────────┐        ┌──────────────────────┐
@@ -21,71 +25,39 @@ Raspberry Pi (自宅)              VPS
 
 | Path | Description |
 | --- | --- |
-| `apps/pi-agent` | Raspberry Pi で動く sensor reader & MQTT publisher |
+| `apps/pi-agent` | Raspberry Pi sensor reader & MQTT publisher |
 | `apps/ingester` | MQTT subscriber → TimescaleDB writer |
-| `apps/ops-dashboard` | 管理画面 (将来用) |
-| `infra/vps` | VPS 用 Docker Compose, Mosquitto, Grafana, TimescaleDB |
-| `infra/pi` | Pi 用 Docker Compose, systemd, provisioning |
-| `packages/contracts` | MQTT payload schema, topic 定義, 型 |
-| `packages/config` | 共通設定値、メトリクス名、unit 定義 |
-| `packages/utils` | 共通ライブラリ |
+| `infra/vps` | VPS Docker Compose, Mosquitto, Grafana, TimescaleDB |
+| `infra/pi` | Pi Docker Compose |
+| `packages/contracts` | MQTT topic / metric 定義 (TypeScript) |
 | `.github/workflows` | CI/CD |
-| `docs` | 運用手順、障害対応、センサー追加手順 |
-
-## Quick Start
-
-### VPS 側
-
-```bash
-cd infra/vps
-cp .env.example .env  # 環境変数を設定
-docker compose up -d
-```
-
-### Raspberry Pi 側
-
-```bash
-cd infra/pi
-cp env/.env.example env/.env  # 環境変数を設定
-docker compose -f docker-compose.pi.yml up -d
-```
-
-## Monitored Metrics
-
-| Metric | Unit |
-| --- | --- |
-| Water Temperature | °C |
-| Air Temperature | °C |
-| pH | pH |
-| Dissolved Oxygen | mg/L |
-| Electrical Conductivity | μS/cm |
-| Humidity | % |
 
 ## Deploy
 
-### Strategy
+### Pi
 
-Pi でも VPS でもローカル build はしない。GitHub Actions (GitHub-hosted runner) で Docker image を build し、GHCR に push。本番機は pull して起動するだけ。
+- merge to `main`
+- builds `apps/pi-agent`
+- pushes image to GHCR
+- Pi runner pulls and restarts via compose
 
-```
-main merge → GitHub Actions build → GHCR push → 本番 pull → compose up → health check
-```
+### VPS
 
-### Workflows
+- merge to `main`
+- builds `apps/ingester`
+- pushes image to GHCR
+- GitHub Actions SSHes into VPS and runs `infra/vps/scripts/deploy.sh`
 
-| Workflow | Trigger | Target |
-| --- | --- | --- |
-| `ci.yml` | PR / push to main | lint, test (GitHub-hosted) |
-| `deploy-pi.yml` | push to main (`apps/pi-agent/**`, `infra/pi/**`) | Pi self-hosted runner |
-| `deploy-vps.yml` | push to main (`apps/ingester/**`, `infra/vps/**`) | VPS via SSH |
-| `db-migration.yml` | push to main (`infra/vps/timescaledb/**`) | TimescaleDB schema |
+## Secrets
 
-### Rollback
+### GitHub Environment: `prod`
 
-Health check が失敗した場合、直前の image tag に自動 rollback する。
+- `VPS_HOST`
+- `VPS_USER`
+- `VPS_SSH_KEY`
+- `VPS_PORT`
 
-## Docs
+## Local env files
 
-- [Architecture](docs/architecture.md)
-- [Runbook](docs/runbook.md)
-- [Sensors](docs/sensors.md)
+- `/home/app/deploy/aquaponics/env/app.env`
+- `/home/actions/deploy/aquaponics/env/pi-agent.env`

@@ -25,6 +25,7 @@ services:
       - "5432:5432"
     volumes:
       - /home/app/deploy/aquaponics/data/timescaledb:/var/lib/postgresql/data
+      - ./timescaledb/migrations:/docker-entrypoint-initdb.d:ro
     command: >
       postgres
       -c shared_buffers=256MB
@@ -48,6 +49,7 @@ services:
       - "3000:3000"
     volumes:
       - /home/app/deploy/aquaponics/data/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - timescaledb
 
