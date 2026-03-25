@@ -8,56 +8,33 @@ on:
       - "infra/pi/**"
       - ".github/workflows/deploy-pi.yml"
 
-permissions:
-  contents: read
-  packages: write
-
 jobs:
-  build-and-push-pi-agent:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: [self-hosted, Linux, ARM64, pi]
+    environment: prod
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-      - name: Build and push arm64 image
+      - name: Setup directories
         run: |
-          docker buildx build \
-            --platform linux/arm64 \
-            -t ghcr.io/${{ github.repository }}/pi-agent:${{ github.sha }} \
-            -t ghcr.io/${{ github.repository }}/pi-agent:latest \
-            --push \
-            ./apps/pi-agent
+          mkdir -p /home/actions/deploy/aquaponics/env
+          mkdir -p /home/actions/deploy/aquaponics/repo
 
-  deploy:
-    needs: build-and-push-pi-agent
-    runs-on: [self-hosted, Linux, ARM64, pi, aquaponics, deploy]
-    environment: prod
-
-    steps:
-      - name: GHCR login on Pi
+      - name: Write env file
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          cat << 'EOF' > /home/actions/deploy/aquaponics/env/pi-agent.env
+          ${{ secrets.PI_AGENT_ENV }}
+          EOF
 
-      - name: Pull latest image
+      - name: Sync repo
         run: |
-          docker pull ghcr.io/${{ github.repository }}/pi-agent:latest
+          rsync -av --delete \
+            $GITHUB_WORKSPACE/ \
+            /home/actions/deploy/aquaponics/repo/
 
-      - name: Deploy with compose
+      - name: Deploy container
         run: |
-          docker compose \
-            -f /home/actions/deploy/aquaponics/docker-compose.pi.yml \
-            up -d
-
-      - name: Cleanup old images
-        run: |
-          docker image prune -af || true
+          cd /home/actions/deploy/aquaponics/repo/infra/pi
+          docker compose -f docker-compose.pi.yml up -d
