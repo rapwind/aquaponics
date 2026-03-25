@@ -27,19 +27,19 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: [self-hosted, linux, ARM64, pi, aquapi, deploy]
+    runs-on: [self-hosted, Linux, ARM64]
     environment: pi-prod
     env:
-      COMPOSE_FILE: /opt/aquapi/docker-compose.pi.yml
+      COMPOSE_FILE: /home/actions/deploy/aquaponics/current/docker-compose.pi.yml
       IMAGE: ghcr.io/${{ github.repository }}/pi-agent
-      DEPLOY_DIR: /opt/aquapi
+      DEPLOY_DIR: /home/actions/deploy/aquaponics
     steps:
       - name: Login to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
 
       - name: Save current tag for rollback
         run: |
-          CURRENT=$(docker inspect --format='{{index .Config.Image}}' aquapi-pi-agent-1 2>/dev/null || echo "none")
+          CURRENT=$(docker inspect --format='{{index .Config.Image}}' aquaponics-pi-agent-1 2>/dev/null || echo "none")
           echo "PREVIOUS_IMAGE=${CURRENT}" >> "$GITHUB_ENV"
           echo "Previous image: ${CURRENT}"
 

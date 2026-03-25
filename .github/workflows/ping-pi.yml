@@ -21,4 +21,4 @@ jobs:
           echo "=== DOCKER ==="
           docker version || true
           echo "=== DEPLOY DIR ==="
-          ls -la /home/actions/deploy/aquapi || true
+          ls -la /home/actions/deploy/aquaponics || true

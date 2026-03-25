@@ -1,0 +1,47 @@
+name: rename-deploy-dir
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rename:
+    runs-on: [self-hosted, Linux, ARM64]
+
+    steps:
+      - name: Show current deploy dirs
+        run: |
+          set -euxo pipefail
+          echo "=== before ==="
+          ls -la /home/actions/deploy || true
+          ls -la /home/actions/deploy/aquapi || true
+          ls -la /home/actions/deploy/aquaponics || true
+
+      - name: Rename aquapi -> aquaponics
+        run: |
+          set -euxo pipefail
+
+          BASE="/home/actions/deploy"
+          OLD_DIR="${BASE}/aquapi"
+          NEW_DIR="${BASE}/aquaponics"
+
+          if [ -d "${NEW_DIR}" ]; then
+            echo "target already exists: ${NEW_DIR}"
+            exit 0
+          fi
+
+          if [ ! -d "${OLD_DIR}" ]; then
+            echo "source dir not found: ${OLD_DIR}"
+            exit 1
+          fi
+
+          mv "${OLD_DIR}" "${NEW_DIR}"
+
+      - name: Verify renamed dir
+        run: |
+          set -euxo pipefail
+          echo "=== after ==="
+          ls -la /home/actions/deploy
+          ls -la /home/actions/deploy/aquaponics
+          test -d /home/actions/deploy/aquaponics/current
+          test -d /home/actions/deploy/aquaponics/env
+          test -d /home/actions/deploy/aquaponics/releases

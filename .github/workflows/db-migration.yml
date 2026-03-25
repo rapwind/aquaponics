@@ -67,12 +67,12 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-            cd /opt/aquapi
+            cd /home/actions/deploy/aquaponics
 
             for f in infra/vps/timescaledb/migrations/*.sql; do
               [ -f "$f" ] || { echo "No migration files"; exit 0; }
               echo "Applying: $f"
-              docker exec aquapi-timescaledb-1 psql -U aquaponics -d aquaponics -f "/migrations/$(basename $f)"
+              docker exec aquaponics-timescaledb-1 psql -U aquaponics -d aquaponics -f "/migrations/$(basename $f)"
             done
 
             echo "Migrations applied"

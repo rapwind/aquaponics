@@ -43,13 +43,13 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-            cd /opt/aquapi
+            cd /home/actions/deploy/aquaponics
 
             # Login to GHCR
             echo "${{ secrets.DEPLOY_GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.repository_owner }}" --password-stdin
 
             # Save current state for rollback
-            docker compose -f docker-compose.vps.yml ps --format json > /tmp/aquapi-pre-deploy.json || true
+            docker compose -f docker-compose.vps.yml ps --format json > /tmp/aquaponics-pre-deploy.json || true
 
             # Pull and deploy
             docker compose -f docker-compose.vps.yml pull
@@ -58,10 +58,10 @@ jobs:
             # Health check
             sleep 15
             for SVC in mosquitto timescaledb grafana ingester; do
-              STATUS=$(docker inspect --format='{{.State.Status}}' "aquapi-${SVC}-1" 2>/dev/null || echo "missing")
+              STATUS=$(docker inspect --format='{{.State.Status}}' "aquaponics-${SVC}-1" 2>/dev/null || echo "missing")
               if [ "$STATUS" != "running" ]; then
                 echo "ERROR: ${SVC} is not running (status: ${STATUS})"
-                docker logs "aquapi-${SVC}-1" --tail 30 || true
+                docker logs "aquaponics-${SVC}-1" --tail 30 || true
                 exit 1
               fi
               echo "OK: ${SVC} is running"
