@@ -6,7 +6,7 @@ services:
     ports:
       - "1883:1883"
     volumes:
-      - ./mosquitto/config:/mosquitto/config:ro
+      - ./mosquitto/config:/mosquitto/config
       - /home/app/deploy/aquaponics/data/mosquitto:/mosquitto/data
       - /home/app/deploy/aquaponics/data/mosquitto-log:/mosquitto/log
 
