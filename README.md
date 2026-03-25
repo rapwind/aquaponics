@@ -247,13 +247,32 @@ vim ~/deploy/aquaponics/env/pi-agent.env  # VPS IP, パスワード設定
 
 `aquaponics-overview` ダッシュボード (自動プロビジョニング):
 
-| パネル | 種類 | クエリ |
+**Current Values** (stat + sparkline)
+
+| パネル | メトリクス | thresholds |
 | --- | --- | --- |
-| Air Temperature | timeseries | `air_temp_c` |
-| Humidity | timeseries | `humidity_pct` |
-| Latest Air Temp | stat | 最新 `air_temp_c` |
-| Latest Humidity | stat | 最新 `humidity_pct` |
-| Latest Metrics | table | 直近 20 件 |
+| Air Temp | `air_temp_c` | 18 green / 30 orange / 35 red |
+| Humidity | `humidity_pct` | 30 green / 70 blue |
+| Pressure | `pressure_hpa` | — |
+| Light | `lux` | 200 yellow / 1000 orange |
+| Water Temp | `water_temp_c` | 20 green / 28 orange / 32 red |
+| Last Seen | 最終データ受信からの経過秒 | — |
+
+**Environment** (timeseries)
+
+| パネル | 内容 |
+| --- | --- |
+| Temperature (Air + Water) | `air_temp_c` + `water_temp_c` 重ね表示 |
+| Humidity | `humidity_pct` |
+| Atmospheric Pressure | `pressure_hpa` |
+| Light (Lux) | `lux` |
+
+**Device Health**
+
+| パネル | 内容 |
+| --- | --- |
+| Pi Resource Usage | `cpu_pct` + `mem_pct` + `disk_pct` 重ね表示 |
+| Recent Data | 直近 30 件テーブル |
 
 ダッシュボード JSON は `infra/vps/grafana/dashboards/` に配置。
 Grafana UI で編集 → Export JSON → repo にコミットで管理。
