@@ -218,7 +218,24 @@ def on_disconnect(client, userdata, flags, reason_code, properties=None):
     print(f"[mqtt] disconnected: {reason_code}")
 
 
+def connect_with_retry(client: mqtt.Client) -> None:
+    MAX_BACKOFF = 300
+    delay = 5
+    while True:
+        try:
+            print(f"[mqtt] connecting to {MQTT_HOST}:{MQTT_PORT} ...")
+            client.connect(MQTT_HOST, MQTT_PORT, 60)
+            return
+        except Exception as e:
+            print(f"[mqtt] connection failed: {e} — retrying in {delay}s")
+            time.sleep(delay)
+            delay = min(delay * 2, MAX_BACKOFF)
+
+
 def main():
+    print(f"[pi-agent] starting  site={SITE_ID} tank={TANK_ID} device={DEVICE_ID}")
+    print(f"[pi-agent] MQTT target: {MQTT_HOST}:{MQTT_PORT}")
+
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     if MQTT_USER and MQTT_PASSWORD:
         client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
@@ -226,7 +243,7 @@ def main():
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
 
-    client.connect(MQTT_HOST, MQTT_PORT, 60)
+    connect_with_retry(client)
     client.loop_start()
 
     # Sensor initialization after MQTT starts so errors can be published
@@ -235,6 +252,10 @@ def main():
 
     while True:
         try:
+            if not client.is_connected():
+                print("[mqtt] not connected, attempting reconnect ...")
+                connect_with_retry(client)
+
             env_metrics = read_env_metrics(client)
             water_metrics = read_water_metrics(client)
             device_metrics = read_device_metrics()
@@ -244,7 +265,7 @@ def main():
             publish_metrics(client, "device", device_metrics)
             publish_heartbeat(client)
         except Exception as e:
-            publish_event(client, "error", f"Unexpected main loop error: {e}")
+            print(f"[main] error: {e}")
 
         time.sleep(PUBLISH_INTERVAL_SEC)
 
