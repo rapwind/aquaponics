@@ -214,11 +214,13 @@
       "datasource": { "type": "postgres", "uid": "P40AE60E18F02DE32" },
       "fieldConfig": {
         "defaults": {
-          "unit": "none",
+          "unit": "s",
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null }
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 120 },
+              { "color": "red", "value": 300 }
             ]
           },
           "noValue": "No data"
@@ -239,7 +241,7 @@
         {
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT EXTRACT(EPOCH FROM (now() - max(ts)))::int || 's ago' AS value FROM sensor_metrics WHERE sensor_group = 'heartbeat' OR metric_name = 'cpu_pct'",
+          "rawSql": "SELECT EXTRACT(EPOCH FROM (now() - max(ts)))::int AS value FROM sensor_metrics WHERE metric_name = 'cpu_pct'",
           "refId": "A"
         }
       ],
