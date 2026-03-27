@@ -104,6 +104,7 @@ def publish_event(client: mqtt.Client, level: str, message: str) -> None:
 
 def publish_error_once(client: mqtt.Client, message: str) -> None:
     global _last_error_messages
+    print(f"[error] {message}")
     if message in _last_error_messages:
         return
     _last_error_messages.add(message)
@@ -112,6 +113,7 @@ def publish_error_once(client: mqtt.Client, message: str) -> None:
 
 def publish_info_once(client: mqtt.Client, message: str) -> None:
     global _last_error_messages
+    print(f"[info] {message}")
     key = f"INFO::{message}"
     if key in _last_error_messages:
         return

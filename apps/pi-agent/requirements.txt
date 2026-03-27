@@ -1,5 +1,6 @@
 paho-mqtt==2.1.0
 psutil==7.0.0
+rpi-lgpio==0.6
 adafruit-blinka==8.57.0
 adafruit-circuitpython-bme280==2.6.28
 adafruit-circuitpython-bh1750==1.1.15
