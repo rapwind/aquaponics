@@ -1,6 +1,8 @@
 services:
   pi-agent:
-    image: ghcr.io/rapwind/aquaponics/pi-agent:latest
+    build:
+      context: ../../apps/pi-agent
+    image: aquaponics/pi-agent:latest
     container_name: pi-agent
     restart: unless-stopped
     env_file:

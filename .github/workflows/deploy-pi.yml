@@ -37,4 +37,4 @@ jobs:
       - name: Deploy container
         run: |
           cd /home/actions/deploy/aquaponics/repo/infra/pi
-          docker compose -f docker-compose.pi.yml up -d
+          docker compose -f docker-compose.pi.yml up -d --build
