@@ -16,10 +16,25 @@ def on_message(client, userdata, msg):
     try:
         payload = parse_payload(msg.payload)
         rows = build_rows(msg.topic, payload)
+    except Exception as e:
+        print(f"[ingester] parse error from {msg.topic}: {e}")
+        return
+
+    try:
         insert_rows(userdata["conn"], rows)
         print(f"[ingester] inserted {len(rows)} rows from {msg.topic}")
     except Exception as e:
-        print(f"[ingester] error processing message from {msg.topic}: {e}")
+        print(f"[ingester] db error: {e}, reconnecting...")
+        try:
+            userdata["conn"].close()
+        except Exception:
+            pass
+        try:
+            userdata["conn"] = get_conn()
+            insert_rows(userdata["conn"], rows)
+            print(f"[ingester] inserted {len(rows)} rows from {msg.topic} (after reconnect)")
+        except Exception as e2:
+            print(f"[ingester] db retry failed: {e2}")
 
 
 def main():

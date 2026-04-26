@@ -31,6 +31,7 @@ jobs:
       - name: Sync repo
         run: |
           rsync -av --delete \
+            --exclude='.git' \
             $GITHUB_WORKSPACE/ \
             /home/actions/deploy/aquaponics/repo/
 
@@ -38,3 +39,6 @@ jobs:
         run: |
           cd /home/actions/deploy/aquaponics/repo/infra/pi
           docker compose -f docker-compose.pi.yml up -d --build
+
+      - name: Cleanup old images
+        run: docker image prune -af || true
